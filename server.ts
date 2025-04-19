@@ -58,6 +58,7 @@ Client.init({
 });
 
 // Routes
+// GET Clients
 app.get('/api/clients', async (_req: Request, res: Response): Promise<void> => {
   try {
     const clients = await Client.findAll();
@@ -67,6 +68,7 @@ app.get('/api/clients', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
+// POST Clients
 app.post('/api/clients', async (req: Request, res: Response): Promise<void> => {
   const { name, email, goal, phone, address, notes, profile }: ClientAttributes = req.body;
   if (!name || !email) {
@@ -85,6 +87,70 @@ app.post('/api/clients', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// DELETE Client
+app.delete('/api/clients/:id', async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    try {
+      const client = await Client.findByPk(id);
+      if (!client) {
+        res.status(404).json({ error: 'Client not found' });
+        return;
+      }
+      await client.destroy();
+      res.status(204).send();
+    } catch (err: unknown) {
+      res.status(500).json({ error: 'Failed to delete client' });
+    }
+  });
+
+//UPDATE Client (Edit button)
+app.put('/api/clients/:id', async (req: Request, res:Response ): Promise<void> =>{
+    const { id } = req.params;
+    const { name, email, goal, phone, address, notes, profile }: ClientAttributes = req.body;
+
+    try {
+        const client = await Client.findByPk(id);
+        if (!client) {
+            res.status(404).json({ error: 'Client not found '});
+            return;
+        }
+
+        await client.update({
+            name: name || client.name,
+            email: email || client.email,
+            goal: goal !== undefined ? goal : client.goal,
+            phone: phone !== undefined ? phone : client.phone,
+            address: address !== undefined ? address : client.address,
+            notes: notes !== undefined ? notes : client.notes,
+            profile: profile !== undefined ? profile : client.profile,
+        });
+
+        res.status(200).json(client);
+    }   catch (err:any) {
+            if(err.name === 'SequelizeUniqueConstraintError') {
+                res.status(400).json({ error: 'Email already exists' });
+            } else {
+                res.status(500).json({ error: 'Failed to update client ' });
+            }
+
+        }
+});
+
+// GET one Client (View button)
+app.get('/api/clients/:id', async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    try {
+      const client = await Client.findByPk(id);
+      if (!client) {
+        res.status(404).json({ error: 'Client not found' });
+        return;
+      }
+      res.status(200).json(client);
+    } catch (err: unknown) {
+      res.status(500).json({ error: 'Failed to fetch client' });
+    }
+  });
+  
 // Error handling
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
   console.error(err.stack);
