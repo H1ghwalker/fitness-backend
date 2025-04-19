@@ -1,0 +1,4 @@
+node_modules/
+.env
+dist/
+fitness_db_backup.sql
