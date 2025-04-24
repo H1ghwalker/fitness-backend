@@ -9,7 +9,11 @@ const port: number = parseInt(process.env.PORT || '1337', 10);
 
 // Middleware
 app.use(cors({ 
-  origin: ['http://localhost:3000'] 
+  origin: 
+  [
+    'http://localhost:3000',
+    'https://fitness-frontend-blush.vercel.app'
+  ] 
 }));
 app.use(express.json());
 
