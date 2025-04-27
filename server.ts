@@ -7,6 +7,7 @@ import { corsMiddleware } from './middleware/cors';
 import { jsonParserMiddleware } from './middleware/jsonParser';
 import { loggerMiddleware } from './middleware/logger';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
+import path from 'path';
 
 dotenv.config();
 const app: Express = express();
@@ -21,6 +22,7 @@ const sequelize = new Sequelize(process.env.DATABASE_URL!, {
 app.use(loggerMiddleware);
 app.use(corsMiddleware);
 app.use(jsonParserMiddleware);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Убедимся, что путь к папке uploads правильный
 
 // Initialize models
 initClientModel(sequelize);
