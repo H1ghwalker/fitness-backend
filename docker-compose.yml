@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15
+    platform: linux/amd64  # Указываем платформу здесь
+    container_name: fitness_db
+    environment:
+      POSTGRES_USER: fitness_user
+      POSTGRES_PASSWORD: fitness_password
+      POSTGRES_DB: fitness_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fitness_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64  # Указываем платформу здесь
+    container_name: fitness-backend
+    environment:
+      DATABASE_URL: postgres://fitness_user:fitness_password@postgres:5432/fitness_db
+      PORT: 1337
+    ports:
+      - "1337:1337"
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - fitness_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+
+networks:
+  fitness_network:
+    driver: bridge
