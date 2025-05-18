@@ -26,10 +26,11 @@ router.post("/register", async (req, res): Promise<void> => {
   const token = signToken({ id: user.id, role: user.role });
 
   res
+    .clearCookie("token")
     .cookie("token", token, {
       httpOnly: true,
-      sameSite: "none", // ✅ обязательно для кросс-доменных запросов
-      secure: true, // ✅ обязательно при HTTPS
+      sameSite: "none",  // 🔥 обязательно для кросс-доменных запросов
+      secure: true,       // 🔥 обязательно для https
     })
     .status(201)
     .json({ id: user.id, name: user.name, email: user.email, role: user.role });
@@ -54,17 +55,23 @@ router.post("/login", async (req, res): Promise<void> => {
   const token = signToken({ id: user.id, role: user.role });
 
   res
+    .clearCookie("token")
     .cookie("token", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",  // 🔥 обязательно для кросс-доменных запросов
+      secure: true,       // 🔥 обязательно для https
     })
+    .status(200)
     .json({ id: user.id, name: user.name, email: user.email, role: user.role });
 });
 
 // POST /api/auth/logout
 router.post("/logout", (req, res): void => {
-  res.clearCookie("token").status(200).json({ message: "Logged out" });
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "none",
+    secure: true,
+  }).status(200).json({ message: "Logged out" });
 });
 
 // GET /api/auth/me
