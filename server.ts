@@ -18,10 +18,7 @@ const port: number = parseInt(process.env.PORT || '1337', 10);
 
 // Middleware
 app.use(loggerMiddleware);
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(corsMiddleware);
 app.use(jsonParserMiddleware);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cookieParser());
@@ -37,6 +34,7 @@ app.use(errorHandlerMiddleware);
 
 // Server launch
 import sequelize from './models';
+import { corsMiddleware } from './middleware/cors';
 sequelize.sync({ alter: true }).then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
