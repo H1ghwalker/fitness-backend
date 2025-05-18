@@ -1,6 +1,6 @@
 // routes/index.ts
 import { Router } from "express";
-import clientRoutes from "./clients/clients";
+import clientRoutes from "./clients";
 import authRoutes from "./auth";
 
 const router = Router();
