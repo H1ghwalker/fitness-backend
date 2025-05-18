@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { Client } from "../models/client";
+import { Client } from "../models/client"
 import { User } from "../models/user";
 import bcrypt from "bcryptjs";
 import fs from "fs";
