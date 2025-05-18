@@ -1,9 +1,8 @@
 import express, { Express } from 'express';
-import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 import { initializeModels } from './models';
-import cors from 'cors';
 import { jsonParserMiddleware } from './middleware/jsonParser';
+import { corsMiddleware } from './middleware/cors';
 import { loggerMiddleware } from './middleware/logger';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import path from 'path';
@@ -34,7 +33,6 @@ app.use(errorHandlerMiddleware);
 
 // Server launch
 import sequelize from './models';
-import { corsMiddleware } from './middleware/cors';
 sequelize.sync({ alter: true }).then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
