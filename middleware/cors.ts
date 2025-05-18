@@ -7,7 +7,8 @@ const corsOptions = {
     'https://fitness-frontend-6dzrux4s7-h1ghwalkers-projects.vercel.app', // Добавляем новый домен Vercel
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Разрешаем нужные методы
-  allowedHeaders: ['Content-Type'], // Разрешаем заголовки
+  allowedHeaders: ['Content-Type'],
+  credentials: true,
 };
 
 export const corsMiddleware = cors(corsOptions);

@@ -1,51 +1,76 @@
-import { Sequelize, DataTypes, Model } from 'sequelize';
+import { Sequelize, DataTypes, Model } from "sequelize";
 
 // Interface for Client model
 interface ClientAttributes {
   id?: number;
-  name: string;
-  email: string;
   goal?: string;
   phone?: string;
   address?: string;
   notes?: string;
   profile?: string;
-  plan?: 'Premium Monthly' | 'Standard Weekly' | 'Single Session';
+  plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
+  type?: "Subscription" | "One-time";
   nextSession?: string;
+  user_id: number;
+  trainer_id?: number;
 }
 
 // Client model
-export class Client extends Model<ClientAttributes> implements ClientAttributes {
+export class Client
+  extends Model<ClientAttributes>
+  implements ClientAttributes
+{
   public id!: number;
-  public name!: string;
-  public email!: string;
   public goal?: string;
   public phone?: string;
   public address?: string;
   public notes?: string;
   public profile?: string;
-  public plan?: 'Premium Monthly' | 'Standard Weekly' | 'Single Session';
+  public plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
+  public type?: "Subscription" | "One-time";
   public nextSession?: string;
+  public user_id!: number;
+  public trainer_id!: number;
 }
 
 export const initClientModel = (sequelize: Sequelize) => {
   Client.init(
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      name: { type: DataTypes.STRING, allowNull: false },
-      email: { type: DataTypes.STRING, unique: true, allowNull: false },
       goal: { type: DataTypes.STRING, allowNull: true },
       phone: { type: DataTypes.STRING, allowNull: true },
       address: { type: DataTypes.STRING, allowNull: true },
       notes: { type: DataTypes.STRING, allowNull: true },
       profile: { type: DataTypes.STRING, allowNull: true },
-      plan: { type: DataTypes.ENUM('Premium Monthly', 'Standard Weekly', 'Single Session'), allowNull: true },
+      plan: {
+        type: DataTypes.ENUM(
+          "Premium Monthly",
+          "Standard Weekly",
+          "Single Session"
+        ),
+        allowNull: true,
+      },
+      type: {
+        type: DataTypes.ENUM("Subscription", "One-time"),
+        allowNull: true,
+      },
       nextSession: { type: DataTypes.STRING, allowNull: true },
+      user_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "users", key: "id" },
+        unique: true,
+      },
+      trainer_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "users", key: "id" },
+      },
     },
     {
       sequelize,
-      modelName: 'Client',
-      tableName: 'clients',
+      modelName: "Client",
+      tableName: "clients",
       timestamps: false,
     }
   );
