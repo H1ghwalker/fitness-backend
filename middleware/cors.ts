@@ -3,7 +3,7 @@ import cors from 'cors';
 const corsOptions = {
   origin: [
     'http://localhost:3000',
-    'https://fitness-frontend-blush.vercel.app/', // Добавляем новый домен Vercel
+    'https://fitness-frontend-blush.vercel.app', // Добавляем новый домен Vercel
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Разрешаем нужные методы
   allowedHeaders: ['Content-Type'],
