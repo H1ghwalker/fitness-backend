@@ -1,12 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 export const loggerMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  
+  logger.info('Incoming request', {
+    method: req.method,
+    url: req.url,
+    ip: req.ip,
+    userAgent: req.get('user-agent')
+  });
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+    logger.info('Request completed', {
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`
+    });
   });
 
   next();

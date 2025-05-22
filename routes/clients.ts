@@ -1,18 +1,34 @@
-import { Router, Request, Response } from "express";
-import { Client } from "../models/client"
+import { Router } from "express";
+import { Client } from "../models/client";
 import { User } from "../models/user";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 import { AuthRequest, requireAuth, requireRole } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import logger from "../utils/logger";
 
 const router = Router();
 
-// GET /api/clients - Только свои клиенты
-router.get("/", requireAuth, async (req: AuthRequest, res: Response): Promise<void> => {
+const isTrainerAndOwnsClient = (req: AuthRequest, client: Client): boolean => {
+  return req.user?.role === "Trainer" && client.trainer_id === req.user.id;
+};
+
+const deleteFileIfExists = (relativePath: string) => {
+  const filePath = path.join(__dirname, "..", relativePath);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+};
+
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     if (req.user?.role !== "Trainer") {
+      logger.warn('Unauthorized access attempt', {
+        userId: req.user?.id,
+        role: req.user?.role,
+        endpoint: '/clients'
+      });
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -22,20 +38,25 @@ router.get("/", requireAuth, async (req: AuthRequest, res: Response): Promise<vo
       include: [{ model: User, as: "User", attributes: ["name", "email"] }],
     });
 
+    logger.info('Clients fetched successfully', {
+      trainerId: req.user.id,
+      clientCount: clients.length
+    });
+
     res.status(200).json(clients);
-  } catch (err: any) {
-    console.error("Error fetching clients:", err);
+  } catch (err) {
+    logger.error('Error fetching clients', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      trainerId: req.user?.id
+    });
     res.status(500).json({ error: "Failed to fetch clients" });
   }
 });
 
-// GET /api/clients/:id
-router.get("/:id", async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
-
+router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const client = await Client.findOne({
-      where: { user_id: id },
+    const client = await Client.findByPk(req.params.id, {
       include: [{ model: User, as: "User", attributes: ["name", "email"] }],
     });
 
@@ -44,21 +65,24 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (!isTrainerAndOwnsClient(req, client)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
     res.status(200).json(client);
-  } catch (err: any) {
-    console.error("Error fetching client:", err);
+  } catch (err) {
+    console.error("Error fetching client by id:", err);
     res.status(500).json({ error: "Failed to fetch client" });
   }
 });
 
-// POST /api/clients
 router.post(
   "/",
   requireAuth,
   requireRole("Trainer"),
   upload.single("profile"),
-  async (req: AuthRequest, res: Response): Promise<void> => {
-    const trainerId = req.user?.id;
+  async (req: AuthRequest, res) => {
     const {
       name,
       email,
@@ -71,21 +95,36 @@ router.post(
       nextSession,
     } = req.body;
 
-    const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
+    logger.info('Creating new client', {
+      trainerId: req.user?.id,
+      clientEmail: email,
+      plan: plan
+    });
 
     if (!name || !email) {
+      logger.warn('Invalid client creation attempt', {
+        missingFields: !name ? 'name' : 'email',
+        trainerId: req.user?.id
+      });
       res.status(400).json({ error: "Name and email are required" });
       return;
     }
 
+    const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
+
     try {
       const existingUser = await User.findOne({ where: { email } });
       if (existingUser) {
+        logger.warn('Duplicate email attempt', {
+          email,
+          trainerId: req.user?.id
+        });
         res.status(400).json({ error: "Email already exists" });
         return;
       }
 
       const passwordHash = await bcrypt.hash("default123", 10);
+
       const user = await User.create({
         name,
         email,
@@ -103,7 +142,13 @@ router.post(
         plan,
         type: type === "One-time" ? "One-time" : "Subscription",
         nextSession,
-        trainer_id: trainerId,
+        trainer_id: req.user!.id,
+      });
+
+      logger.info('Client created successfully', {
+        clientId: client.id,
+        trainerId: req.user?.id,
+        plan: plan
       });
 
       res.status(201).json({
@@ -112,15 +157,19 @@ router.post(
         email,
         role: "Client",
       });
-    } catch (err: any) {
-      console.error("Error creating client:", err);
+    } catch (err) {
+      logger.error('Error creating client', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined,
+        trainerId: req.user?.id,
+        clientEmail: email
+      });
       res.status(500).json({ error: "Failed to create client" });
     }
   }
 );
 
-// PUT /api/clients/:id
-router.put("/:id", upload.single("profile"), async (req: Request, res: Response): Promise<void> => {
+router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthRequest, res) => {
   const { id } = req.params;
   const { name, email, goal, phone, address, notes, plan, nextSession } = req.body;
   const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
@@ -135,18 +184,17 @@ router.put("/:id", upload.single("profile"), async (req: Request, res: Response)
       return;
     }
 
-    // Удаление старого профиля
-    if (profile && client.profile) {
-      const oldPath = path.join(__dirname, "..", client.profile);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+    if (!isTrainerAndOwnsClient(req, client)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
     }
 
-    // Обновление User
+    if (profile && client.profile) {
+      deleteFileIfExists(client.profile);
+    }
+
     await User.update({ name, email }, { where: { id: client.user_id } });
 
-    // Обновление Client
     await client.update({
       goal,
       phone,
@@ -176,26 +224,28 @@ router.put("/:id", upload.single("profile"), async (req: Request, res: Response)
   }
 });
 
-// DELETE /api/clients/:id
-router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
   try {
     const client = await Client.findByPk(id);
+
     if (!client) {
       res.status(404).json({ error: "Client not found" });
       return;
     }
 
+    if (!isTrainerAndOwnsClient(req, client)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
     if (client.profile) {
-      const filePath = path.join(__dirname, "..", client.profile);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      deleteFileIfExists(client.profile);
     }
 
     await client.destroy();
     res.status(204).send();
-  } catch (err: any) {
+  } catch (err) {
     console.error("Error deleting client:", err);
     res.status(500).json({ error: "Failed to delete client" });
   }
