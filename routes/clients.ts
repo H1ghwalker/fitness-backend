@@ -7,6 +7,7 @@ import path from "path";
 import { AuthRequest, requireAuth, requireRole } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 import logger from "../utils/logger";
+import { Session } from "../models/session";
 
 const router = Router();
 
@@ -144,6 +145,20 @@ router.post(
         role: "Client",
       });
 
+      let nextSessionDate: Date | undefined = undefined;
+      if (nextSession) {
+        const [datePart, timePart] = nextSession.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        let hours = 0;
+        let minutes = 0;
+        
+        if (timePart) {
+          [hours, minutes] = timePart.split(':').map(Number);
+        }
+        
+        nextSessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+      }
+
       const client = await Client.create({
         user_id: user.id,
         goal,
@@ -153,9 +168,18 @@ router.post(
         profile,
         plan,
         type: type === "One-time" ? "One-time" : "Subscription",
-        nextSession,
+        nextSession: nextSessionDate,
         trainer_id: req.user!.id,
       });
+
+      if (nextSessionDate) {
+        await Session.create({
+          clientId: client.id,
+          trainerId: req.user!.id,
+          date: nextSessionDate,
+          note: 'Initial session'
+        });
+      }
 
       logger.info('Client created successfully', {
         clientId: client.id,
@@ -170,11 +194,10 @@ router.post(
         role: "Client",
       });
     } catch (err) {
-      logger.error('Error creating client', {
+      logger.error('Error creating client:', {
         error: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined,
-        trainerId: req.user?.id,
-        clientEmail: email
+        params: { name, email, goal, phone, address, notes, plan, type, nextSession }
       });
       res.status(500).json({ error: "Failed to create client" });
     }

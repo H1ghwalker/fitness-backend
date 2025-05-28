@@ -63,6 +63,23 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       note 
     });
 
+    // Обновляем nextSession у клиента
+    // Находим ближайшую сессию для клиента
+    const nextSession = await Session.findOne({
+      where: {
+        clientId,
+        date: {
+          [Op.gte]: new Date() // только будущие сессии
+        }
+      },
+      order: [['date', 'ASC']]
+    });
+
+    // Обновляем nextSession у клиента
+    await client.update({
+      nextSession: nextSession ? nextSession.date : undefined
+    });
+
     console.log('Session created:', session.id);
 
     const createdSession = await Session.findOne({
@@ -169,6 +186,45 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
       query: { month, trainerId }
     });
     res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+});
+
+// Удалить сессию
+router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const trainerId = req.user?.id;
+
+  if (!trainerId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    // Проверяем существование сессии и принадлежность текущему тренеру
+    const session = await Session.findOne({
+      where: {
+        id,
+        trainerId
+      }
+    });
+
+    if (!session) {
+      res.status(404).json({ message: 'Session not found or does not belong to you' });
+      return;
+    }
+
+    // Удаляем сессию
+    await session.destroy();
+
+    res.status(200).json({ message: 'Session deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting session:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      sessionId: id,
+      trainerId
+    });
+    res.status(500).json({ message: 'Failed to delete session' });
   }
 });
 

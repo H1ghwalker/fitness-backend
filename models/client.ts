@@ -9,7 +9,7 @@ interface ClientAttributes {
   profile?: string;
   plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
   type?: "Subscription" | "One-time";
-  nextSession?: string;
+  nextSession?: Date;
   user_id: number;
   trainer_id?: number;
 }
@@ -23,7 +23,7 @@ export class Client extends Model<ClientAttributes> implements ClientAttributes 
   public profile?: string;
   public plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
   public type?: "Subscription" | "One-time";
-  public nextSession?: string;
+  public nextSession?: Date;
   public user_id!: number;
   public trainer_id!: number;
 }
@@ -45,7 +45,7 @@ export const initClientModel = (sequelize: Sequelize) => {
         type: DataTypes.ENUM("Subscription", "One-time"),
         allowNull: true,
       },
-      nextSession: { type: DataTypes.STRING, allowNull: true },
+      nextSession: { type: DataTypes.DATE, allowNull: true },
       user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
