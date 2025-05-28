@@ -35,7 +35,13 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
     const clients = await Client.findAll({
       where: { trainer_id: req.user.id },
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     logger.info('Clients fetched successfully', {
@@ -57,7 +63,13 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const client = await Client.findByPk(req.params.id, {
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     if (!client) {
@@ -176,7 +188,13 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
 
   try {
     const client = await Client.findByPk(id, {
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     if (!client) {

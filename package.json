@@ -4,7 +4,7 @@
   "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.ts",
+    "dev": "nodemon --exec ts-node -P tsconfig.json server.ts",
     "seed": "ts-node scripts/seed.ts",
     "start": "node dist/server.js",
     "build": "tsc"

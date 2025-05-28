@@ -1,6 +1,5 @@
 import { Sequelize, DataTypes, Model } from "sequelize";
 
-// Interface for Client model
 interface ClientAttributes {
   id?: number;
   goal?: string;
@@ -15,11 +14,7 @@ interface ClientAttributes {
   trainer_id?: number;
 }
 
-// Client model
-export class Client
-  extends Model<ClientAttributes>
-  implements ClientAttributes
-{
+export class Client extends Model<ClientAttributes> implements ClientAttributes {
   public id!: number;
   public goal?: string;
   public phone?: string;
@@ -43,11 +38,7 @@ export const initClientModel = (sequelize: Sequelize) => {
       notes: { type: DataTypes.STRING, allowNull: true },
       profile: { type: DataTypes.STRING, allowNull: true },
       plan: {
-        type: DataTypes.ENUM(
-          "Premium Monthly",
-          "Standard Weekly",
-          "Single Session"
-        ),
+        type: DataTypes.ENUM("Premium Monthly", "Standard Weekly", "Single Session"),
         allowNull: true,
       },
       type: {
@@ -59,12 +50,13 @@ export const initClientModel = (sequelize: Sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "users", key: "id" },
-        unique: true,
+        // unique: true, // Убрано для расширения функционала
       },
       trainer_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: "users", key: "id" },
+        // В будущем можно сделать allowNull: true
       },
     },
     {
