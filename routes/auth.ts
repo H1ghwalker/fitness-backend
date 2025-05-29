@@ -1,19 +1,15 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { User } from "../models/user";
 import bcrypt from "bcryptjs";
 import { signToken } from "../utils/jwt";
 import { AuthRequest, requireAuth } from "../middleware/auth";
+import { validateRegistration, validateLogin, validate } from "../middleware/validators";
 
 const router = Router();
 
 // POST /api/auth/register
-router.post("/register", async (req, res): Promise<void> => {
+router.post("/register", validateRegistration, validate, async (req: Request, res: Response): Promise<void> => {
   const { name, email, password, role } = req.body;
-
-  if (!name || !email || !password || !role) {
-    res.status(400).json({ message: "Missing fields" });
-    return;
-  }
 
   const existingUser = await User.findOne({ where: { email } });
   if (existingUser) {
@@ -37,7 +33,7 @@ router.post("/register", async (req, res): Promise<void> => {
 });
 
 // POST /api/auth/login
-router.post("/login", async (req, res): Promise<void> => {
+router.post("/login", validateLogin, validate, async (req: Request, res: Response): Promise<void> => {
   const { email, password } = req.body;
 
   const user = await User.unscoped().findOne({ where: { email } });
