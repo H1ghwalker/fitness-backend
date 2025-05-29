@@ -29,7 +29,7 @@ services:
     environment:
       DATABASE_URL: postgres://fitness_user:fitness_password@postgres:5432/fitness_db
       PORT: 1337
-      NODE_ENV: development  # Добавляем NODE_ENV=development
+      NODE_ENV: development
       JWT_SECRET: trainer_dev_secret_ke1
     ports:
       - "1337:1337"
@@ -38,9 +38,9 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
+      - /app/node_modules
     networks:
       - fitness_network
-    command: npm run dev
     restart: unless-stopped
 
 volumes:

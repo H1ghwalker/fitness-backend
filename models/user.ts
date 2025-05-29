@@ -1,11 +1,11 @@
 import { Sequelize, DataTypes, Model } from 'sequelize';
 
-interface UserAttributes {
+export interface UserAttributes {
   id?: number;
   name: string;
   email: string;
   passwordHash: string;
-  role: 'Trainer' | 'Client';
+  role: 'Trainer' | 'Client'; // Можно заменить на 'Trainer' | 'Client' | 'Admin'
 }
 
 export class User extends Model<UserAttributes> implements UserAttributes {
@@ -13,7 +13,7 @@ export class User extends Model<UserAttributes> implements UserAttributes {
   public name!: string;
   public email!: string;
   public passwordHash!: string;
-  public role!: 'Trainer' | 'Client';
+  public role!: 'Trainer' | 'Client'; // Или расширить ролями
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -24,9 +24,9 @@ export const initUserModel = (sequelize: Sequelize) => {
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       name: { type: DataTypes.STRING, allowNull: false },
-      email: { type: DataTypes.STRING, unique: true, allowNull: false },
+      email: { type: DataTypes.STRING(255), unique: true, allowNull: false }, // Можно явно указать длину
       passwordHash: { type: DataTypes.STRING, allowNull: false },
-      role: { type: DataTypes.ENUM('Trainer', 'Client'), allowNull: false },
+      role: { type: DataTypes.ENUM('Trainer', 'Client'), allowNull: false }, // Добавь 'Admin' если нужно
     },
     {
       sequelize,

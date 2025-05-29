@@ -33,7 +33,7 @@ app.use(errorHandlerMiddleware);
 
 // Server launch
 import sequelize from './models';
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync().then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });

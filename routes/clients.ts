@@ -7,6 +7,7 @@ import path from "path";
 import { AuthRequest, requireAuth, requireRole } from "../middleware/auth";
 import { upload } from "../middleware/upload";
 import logger from "../utils/logger";
+import { Session } from "../models/session";
 
 const router = Router();
 
@@ -35,7 +36,13 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
     const clients = await Client.findAll({
       where: { trainer_id: req.user.id },
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     logger.info('Clients fetched successfully', {
@@ -57,7 +64,13 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const client = await Client.findByPk(req.params.id, {
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     if (!client) {
@@ -132,6 +145,20 @@ router.post(
         role: "Client",
       });
 
+      let nextSessionDate: Date | undefined = undefined;
+      if (nextSession) {
+        const [datePart, timePart] = nextSession.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        let hours = 0;
+        let minutes = 0;
+        
+        if (timePart) {
+          [hours, minutes] = timePart.split(':').map(Number);
+        }
+        
+        nextSessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+      }
+
       const client = await Client.create({
         user_id: user.id,
         goal,
@@ -141,9 +168,18 @@ router.post(
         profile,
         plan,
         type: type === "One-time" ? "One-time" : "Subscription",
-        nextSession,
+        nextSession: nextSessionDate,
         trainer_id: req.user!.id,
       });
+
+      if (nextSessionDate) {
+        await Session.create({
+          clientId: client.id,
+          trainerId: req.user!.id,
+          date: nextSessionDate,
+          note: 'Initial session'
+        });
+      }
 
       logger.info('Client created successfully', {
         clientId: client.id,
@@ -158,11 +194,10 @@ router.post(
         role: "Client",
       });
     } catch (err) {
-      logger.error('Error creating client', {
+      logger.error('Error creating client:', {
         error: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined,
-        trainerId: req.user?.id,
-        clientEmail: email
+        params: { name, email, goal, phone, address, notes, plan, type, nextSession }
       });
       res.status(500).json({ error: "Failed to create client" });
     }
@@ -176,7 +211,13 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
 
   try {
     const client = await Client.findByPk(id, {
-      include: [{ model: User, as: "User", attributes: ["name", "email"] }],
+      include: [
+        {
+          model: User,
+          as: "User", // Заменено на правильный alias из index.ts
+          attributes: ["name", "email"],
+        }
+      ],
     });
 
     if (!client) {
@@ -227,7 +268,21 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
 router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
   try {
-    const client = await Client.findByPk(id);
+    const client = await Client.findByPk(id, {
+      include: [
+        {
+          model: Session,
+          as: 'Sessions',
+          attributes: ['id', 'date', 'note'],
+          order: [['date', 'ASC']]
+        },
+        {
+          model: User,
+          as: 'User',
+          attributes: ['name', 'email']
+        }
+      ]
+    });
 
     if (!client) {
       res.status(404).json({ error: "Client not found" });
@@ -239,15 +294,43 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Логируем информацию о сессиях перед удалением
+    logger.info('Deleting client with sessions', {
+      clientId: id,
+      trainerId: req.user?.id,
+      sessionCount: client.Sessions?.length || 0,
+      clientName: client.User?.name
+    });
+
     if (client.profile) {
       deleteFileIfExists(client.profile);
     }
 
     await client.destroy();
-    res.status(204).send();
+    
+    logger.info('Client deleted successfully', {
+      clientId: id,
+      trainerId: req.user?.id,
+      clientName: client.User?.name,
+      deletedSessionsCount: client.Sessions?.length || 0
+    });
+
+    res.status(200).json({ 
+      message: "Client and associated sessions deleted successfully",
+      deletedSessionsCount: client.Sessions?.length || 0
+    });
   } catch (err) {
-    console.error("Error deleting client:", err);
-    res.status(500).json({ error: "Failed to delete client" });
+    logger.error('Error deleting client:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      clientId: id,
+      trainerId: req.user?.id
+    });
+
+    res.status(500).json({ 
+      error: "Failed to delete client",
+      details: err instanceof Error ? err.message : "Unknown error occurred"
+    });
   }
 });
 
