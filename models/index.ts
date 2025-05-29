@@ -67,13 +67,15 @@ export const initializeModels = () => {
 
   Session.belongsTo(Client, { 
     foreignKey: 'clientId',
-    as: 'Client'
+    as: 'Client',
+    onDelete: 'CASCADE'
   });
   // Сессия привязана к клиенту (через таблицу clients)
 
   Client.hasMany(Session, { 
     foreignKey: 'clientId',
-    as: 'Sessions'
+    as: 'Sessions',
+    onDelete: 'CASCADE'
   });
   // Клиент может иметь много сессий (1:M)
 

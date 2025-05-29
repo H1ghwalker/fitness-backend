@@ -1,6 +1,9 @@
 node_modules/
-.env
 dist/
-fitness_db_backup.sql
+.env
 logs/
+uploads/
+docs/
+IMPROVEMENTS.md
+fitness_db_backup.sql
 *.log

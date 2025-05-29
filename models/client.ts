@@ -1,4 +1,6 @@
 import { Sequelize, DataTypes, Model } from "sequelize";
+import { Session } from "./session";
+import { User } from "./user";
 
 interface ClientAttributes {
   id?: number;
@@ -12,6 +14,8 @@ interface ClientAttributes {
   nextSession?: Date;
   user_id: number;
   trainer_id?: number;
+  Sessions?: Session[];
+  User?: User;
 }
 
 export class Client extends Model<ClientAttributes> implements ClientAttributes {
@@ -26,6 +30,8 @@ export class Client extends Model<ClientAttributes> implements ClientAttributes 
   public nextSession?: Date;
   public user_id!: number;
   public trainer_id!: number;
+  public Sessions?: Session[];
+  public User?: User;
 }
 
 export const initClientModel = (sequelize: Sequelize) => {

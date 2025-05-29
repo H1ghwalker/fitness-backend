@@ -268,7 +268,21 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
 router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
   try {
-    const client = await Client.findByPk(id);
+    const client = await Client.findByPk(id, {
+      include: [
+        {
+          model: Session,
+          as: 'Sessions',
+          attributes: ['id', 'date', 'note'],
+          order: [['date', 'ASC']]
+        },
+        {
+          model: User,
+          as: 'User',
+          attributes: ['name', 'email']
+        }
+      ]
+    });
 
     if (!client) {
       res.status(404).json({ error: "Client not found" });
@@ -280,15 +294,43 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Логируем информацию о сессиях перед удалением
+    logger.info('Deleting client with sessions', {
+      clientId: id,
+      trainerId: req.user?.id,
+      sessionCount: client.Sessions?.length || 0,
+      clientName: client.User?.name
+    });
+
     if (client.profile) {
       deleteFileIfExists(client.profile);
     }
 
     await client.destroy();
-    res.status(204).send();
+    
+    logger.info('Client deleted successfully', {
+      clientId: id,
+      trainerId: req.user?.id,
+      clientName: client.User?.name,
+      deletedSessionsCount: client.Sessions?.length || 0
+    });
+
+    res.status(200).json({ 
+      message: "Client and associated sessions deleted successfully",
+      deletedSessionsCount: client.Sessions?.length || 0
+    });
   } catch (err) {
-    console.error("Error deleting client:", err);
-    res.status(500).json({ error: "Failed to delete client" });
+    logger.error('Error deleting client:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      clientId: id,
+      trainerId: req.user?.id
+    });
+
+    res.status(500).json({ 
+      error: "Failed to delete client",
+      details: err instanceof Error ? err.message : "Unknown error occurred"
+    });
   }
 });
 
