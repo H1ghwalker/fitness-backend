@@ -2,6 +2,9 @@ import { Sequelize } from 'sequelize';
 import { initClientModel, Client } from './client';
 import { initUserModel, User } from './user';
 import { initSessionModel, Session } from './session';
+import { initExerciseModel, Exercise } from './exercise';
+import { initWorkoutTemplateModel, WorkoutTemplate } from './workoutTemplate';
+import { initWorkoutExerciseModel, WorkoutExercise } from './workoutExercise';
 
 const sequelize = new Sequelize(
   process.env.DATABASE_URL || 'postgres://fitness_user:fitness_password@localhost:5432/fitness_db',
@@ -13,8 +16,11 @@ export const initializeModels = () => {
   initUserModel(sequelize);
   initClientModel(sequelize);
   initSessionModel(sequelize);
+  initExerciseModel(sequelize);
+  initWorkoutTemplateModel(sequelize);
+  initWorkoutExerciseModel(sequelize);
 
-  if (!User || !Client) {
+  if (!User || !Client || !Exercise || !WorkoutTemplate || !WorkoutExercise) {
     throw new Error('One or more models failed to initialize');
   }
 
@@ -86,12 +92,56 @@ export const initializeModels = () => {
       role: 'Trainer'
     }
   });
+  
   // Тренер может иметь много сессий (1:M)
-
   // Ассоциации для TrainingProgram (если есть)
   // Client.belongsToMany(TrainingProgram, { through: 'ClientPrograms' });
   // TrainingProgram.belongsToMany(Client, { through: 'ClientPrograms' });
   // User.hasMany(TrainingProgram, { foreignKey: 'trainerId', as: 'TrainingPrograms' });
+
+  // Ассоциации для Exercise
+  Exercise.belongsTo(User, {
+    foreignKey: 'createdBy',
+    as: 'Creator',
+    scope: { role: 'Trainer' }
+  });
+  User.hasMany(Exercise, {
+    foreignKey: 'createdBy',
+    as: 'CreatedExercises'
+  });
+
+  // WorkoutTemplate принадлежит тренеру
+  WorkoutTemplate.belongsTo(User, {
+    foreignKey: 'createdBy',
+    as: 'Creator',
+    scope: { role: 'Trainer' }
+  });
+  User.hasMany(WorkoutTemplate, {
+    foreignKey: 'createdBy',
+    as: 'WorkoutTemplates'
+  });
+
+  // WorkoutTemplate содержит много WorkoutExercise
+  WorkoutTemplate.hasMany(WorkoutExercise, {
+    foreignKey: 'workoutTemplateId',
+    as: 'Exercises',
+    onDelete: 'CASCADE'
+  });
+  WorkoutExercise.belongsTo(WorkoutTemplate, {
+    foreignKey: 'workoutTemplateId',
+    as: 'WorkoutTemplate'
+  });
+
+  // WorkoutExercise ссылается на Exercise
+  WorkoutExercise.belongsTo(Exercise, {
+    foreignKey: 'exerciseId',
+    as: 'Exercise'
+  });
+  Exercise.hasMany(WorkoutExercise, {
+    foreignKey: 'exerciseId',
+    as: 'WorkoutExercises'
+  });
 };
 
 export default sequelize;
+export { User, Client, Session, Exercise, WorkoutTemplate, WorkoutExercise };

@@ -6,14 +6,26 @@ import { corsMiddleware } from './middleware/cors';
 import { loggerMiddleware } from './middleware/logger';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import path from 'path';
-
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import routes from './routes';
-
+import sequelize from './models';
 
 dotenv.config();
-const app: Express = express();
+export const app: Express = express();
 const port: number = parseInt(process.env.PORT || '1337', 10);
+
+// Security middleware
+app.use(helmet());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
 
 // Middleware
 app.use(loggerMiddleware);
@@ -32,11 +44,12 @@ app.use('/api', routes);
 app.use(errorHandlerMiddleware);
 
 // Server launch
-import sequelize from './models';
-sequelize.sync().then(() => {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+if (process.env.NODE_ENV !== 'test') {
+  sequelize.sync().then(() => {
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  }).catch((err: Error) => {
+    console.error('Failed to sync database:', err);
   });
-}).catch((err: Error) => {
-  console.error('Failed to sync database:', err);
-});
+}

@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "dev": "nodemon --exec ts-node -P tsconfig.json server.ts",
-    "seed": "ts-node scripts/seed.ts",
+    "seed:exercises": "ts-node scripts/seedExercises.ts",
     "start": "node dist/server.js",
     "build": "tsc"
   },
@@ -19,6 +20,9 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.0",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
     "pg": "^8.14.1",
@@ -31,10 +35,15 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.14.1",
+    "@types/supertest": "^6.0.3",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.10",
+    "supertest": "^7.1.1",
+    "ts-jest": "^29.3.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
