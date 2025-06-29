@@ -6,7 +6,8 @@ export interface ExerciseAttributes {
   description: string;
   category: string;
   muscleGroup: string;
-  createdBy: number; // ID тренера
+  createdBy: number; // ID тренера или 0 для глобальных
+  isGlobal: boolean; // Глобальное упражнение или персональное
 }
 
 export class Exercise extends Model<ExerciseAttributes> implements ExerciseAttributes {
@@ -16,6 +17,7 @@ export class Exercise extends Model<ExerciseAttributes> implements ExerciseAttri
   public category!: string;
   public muscleGroup!: string;
   public createdBy!: number;
+  public isGlobal!: boolean;
 
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -49,6 +51,11 @@ export const initExerciseModel = (sequelize: Sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: { model: 'users', key: 'id' }
+      },
+      isGlobal: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
       }
     },
     {

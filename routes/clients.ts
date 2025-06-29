@@ -106,6 +106,9 @@ router.post(
       plan,
       type,
       nextSession,
+      age,
+      height,
+      weight,
     } = req.body;
 
     logger.info('Creating new client', {
@@ -169,6 +172,9 @@ router.post(
         plan,
         type: type === "One-time" ? "One-time" : "Subscription",
         nextSession: nextSessionDate,
+        age: age ? parseInt(age) : undefined,
+        height: height ? parseInt(height) : undefined,
+        weight: weight ? parseFloat(weight) : undefined,
         trainer_id: req.user!.id,
       });
 
@@ -197,7 +203,7 @@ router.post(
       logger.error('Error creating client:', {
         error: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined,
-        params: { name, email, goal, phone, address, notes, plan, type, nextSession }
+        params: { name, email, goal, phone, address, notes, plan, type, nextSession, age, height, weight }
       });
       res.status(500).json({ error: "Failed to create client" });
     }
@@ -206,7 +212,7 @@ router.post(
 
 router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthRequest, res) => {
   const { id } = req.params;
-  const { name, email, goal, phone, address, notes, plan, nextSession } = req.body;
+  const { name, email, goal, phone, address, notes, plan, nextSession, age, height, weight } = req.body;
   const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
 
   try {
@@ -245,6 +251,9 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
       plan,
       type: "Subscription",
       nextSession,
+      age: age ? parseInt(age) : undefined,
+      height: height ? parseInt(height) : undefined,
+      weight: weight ? parseFloat(weight) : undefined,
     });
 
     await client.reload();

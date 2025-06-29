@@ -61,6 +61,16 @@ export const initializeModels = () => {
   });
   // Тренер может иметь много клиентов (1:M)
 
+  // Клиент может иметь назначенный шаблон тренировки
+  // Client.belongsTo(WorkoutTemplate, {
+  //   foreignKey: 'assignedTemplateId',
+  //   as: 'AssignedTemplate'
+  // });
+  // WorkoutTemplate.hasMany(Client, {
+  //   foreignKey: 'assignedTemplateId',
+  //   as: 'AssignedClients'
+  // });
+
   // Ассоциации для Session
   Session.belongsTo(User, { 
     foreignKey: 'trainerId',

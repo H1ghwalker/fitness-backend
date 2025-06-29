@@ -4,6 +4,7 @@ export interface SessionAttributes {
   id?: number;
   date: Date;
   note?: string;
+  duration?: number; // длительность в минутах
   trainerId: number;
   clientId: number;
 }
@@ -12,6 +13,7 @@ export class Session extends Model<SessionAttributes> implements SessionAttribut
   public id!: number;
   public date!: Date;
   public note?: string;
+  public duration?: number;
   public trainerId!: number;
   public clientId!: number;
 
@@ -34,6 +36,11 @@ export const initSessionModel = (sequelize: Sequelize) => {
       note: {
         type: DataTypes.TEXT,
         allowNull: true,
+      },
+      duration: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Duration of the session in minutes',
       },
       trainerId: {
         type: DataTypes.INTEGER,
