@@ -5,6 +5,28 @@ import { AuthRequest, requireAuth } from '../middleware/auth';
 
 const router = express.Router();
 
+// Public endpoint for testing (remove in production)
+router.get('/test', async (req, res) => {
+  try {
+    const exercises = await Exercise.findAll({
+      where: { isGlobal: true },
+      order: [['name', 'ASC']]
+    });
+
+    res.json({ 
+      message: 'API is working!',
+      exerciseCount: exercises.length,
+      exercises 
+    });
+  } catch (err) {
+    console.error('Error in test endpoint:', err);
+    res.status(500).json({ 
+      message: 'Failed to fetch exercises', 
+      error: err instanceof Error ? err.message : 'Unknown error' 
+    });
+  }
+});
+
 // Get all exercises (global + personal trainer)
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
   const trainerId = req.user?.id;
