@@ -7,6 +7,7 @@
     "test:watch": "jest --watch",
     "dev": "nodemon --exec ts-node -P tsconfig.json server.ts",
     "seed:exercises": "ts-node scripts/seed-exercises.ts",
+    "seed-exercises": "node scripts/seed-exercises.js",
     "setup:exercises": "node scripts/setup-exercises.js",
     "start": "node dist/server.js",
     "build": "tsc",
