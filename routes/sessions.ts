@@ -4,12 +4,15 @@ import { Client } from '../models/client';
 import { User } from '../models/user';
 import { Op } from 'sequelize';
 import { AuthRequest, requireAuth } from '../middleware/auth';
+import { WorkoutTemplate } from '../models/workoutTemplate';
+import { WorkoutExercise } from '../models/workoutExercise';
+import { Exercise } from '../models/exercise';
 
 const router = express.Router();
 
 // Создать сессию
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
-  const { clientId, date, time, note } = req.body;
+  const { clientId, date, time, note, duration, status, workoutTemplateId } = req.body;
   const trainerId = req.user?.id;
 
   if (!trainerId) {
@@ -35,6 +38,21 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Проверяем, существует ли шаблон тренировки и принадлежит ли он тренеру (если указан)
+    if (workoutTemplateId) {
+      const template = await WorkoutTemplate.findOne({
+        where: {
+          id: workoutTemplateId,
+          createdBy: trainerId
+        }
+      });
+
+      if (!template) {
+        res.status(404).json({ message: 'Workout template not found or does not belong to you' });
+        return;
+      }
+    }
+
     // Парсим дату и время
     let hours = 0;
     let minutes = 0;
@@ -53,14 +71,20 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       date: sessionDate.toISOString(),
       time,
       parsedTime: { hours, minutes },
-      note
+      note,
+      duration,
+      status,
+      workoutTemplateId
     });
 
     const session = await Session.create({ 
       clientId, 
       trainerId, 
       date: sessionDate, 
-      note 
+      note,
+      duration: duration ? parseInt(duration) : undefined,
+      status: status || 'scheduled',
+      workoutTemplateId: workoutTemplateId ? parseInt(workoutTemplateId) : undefined
     });
 
     // Обновляем nextSession у клиента
@@ -98,6 +122,16 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
           model: User,
           as: 'Trainer',
           attributes: ['id', 'name', 'email']
+        },
+        {
+          model: WorkoutTemplate,
+          as: 'WorkoutTemplate',
+          include: [{
+            model: WorkoutExercise,
+            as: 'Exercises',
+            include: [{ model: Exercise, as: 'Exercise' }],
+            order: [['orderIndex', 'ASC']]
+          }]
         }
       ]
     });
@@ -113,7 +147,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     console.error('Error creating session:', {
       error: err instanceof Error ? err.message : 'Unknown error',
       stack: err instanceof Error ? err.stack : undefined,
-      params: { clientId, date, time, note, trainerId }
+      params: { clientId, date, time, note, duration, trainerId, workoutTemplateId }
     });
     res.status(500).json({ message: 'Failed to create session' });
   }
@@ -164,10 +198,20 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
           model: User,
           as: 'Trainer',
           attributes: ['id', 'name', 'email']
+        },
+        {
+          model: WorkoutTemplate,
+          as: 'WorkoutTemplate',
+          include: [{
+            model: WorkoutExercise,
+            as: 'Exercises',
+            include: [{ model: Exercise, as: 'Exercise' }],
+            order: [['orderIndex', 'ASC']]
+          }]
         }
       ],
       order: [['date', 'ASC']],
-      attributes: ['id', 'date', 'note', 'clientId', 'trainerId']
+      attributes: ['id', 'date', 'note', 'duration', 'clientId', 'trainerId', 'status', 'workoutTemplateId']
     });
     
     console.log('Found sessions:', sessions.length);
@@ -225,6 +269,111 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
       trainerId
     });
     res.status(500).json({ message: 'Failed to delete session' });
+  }
+});
+
+// Обновить сессию
+router.put('/:id', requireAuth, async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { date, time, note, duration, status, workoutTemplateId } = req.body;
+  const trainerId = req.user?.id;
+
+  if (!trainerId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    // Проверяем существование сессии и принадлежность текущему тренеру
+    const session = await Session.findOne({
+      where: {
+        id,
+        trainerId
+      },
+      include: [
+        {
+          model: Client,
+          as: 'Client',
+          include: [{ 
+            model: User,
+            as: 'User',
+            attributes: ['id', 'name', 'email']
+          }]
+        },
+        {
+          model: User,
+          as: 'Trainer',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: WorkoutTemplate,
+          as: 'WorkoutTemplate',
+          include: [{
+            model: WorkoutExercise,
+            as: 'Exercises',
+            include: [{ model: Exercise, as: 'Exercise' }],
+            order: [['orderIndex', 'ASC']]
+          }]
+        }
+      ]
+    });
+
+    if (!session) {
+      res.status(404).json({ message: 'Session not found or does not belong to you' });
+      return;
+    }
+
+    // Проверяем, существует ли шаблон тренировки и принадлежит ли он тренеру (если указан)
+    if (workoutTemplateId) {
+      const template = await WorkoutTemplate.findOne({
+        where: {
+          id: workoutTemplateId,
+          createdBy: trainerId
+        }
+      });
+
+      if (!template) {
+        res.status(404).json({ message: 'Workout template not found or does not belong to you' });
+        return;
+      }
+    }
+
+    // Парсим дату и время если они предоставлены
+    let sessionDate = session.date;
+    if (date) {
+      let hours = 0;
+      let minutes = 0;
+      
+      if (time) {
+        [hours, minutes] = time.split(':').map(Number);
+      }
+
+      const [year, month, day] = date.split('T')[0].split('-').map(Number);
+      sessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    }
+
+    // Обновляем сессию
+    await session.update({
+      date: sessionDate,
+      note,
+      duration: duration ? parseInt(duration) : undefined,
+      status: status || session.status,
+      workoutTemplateId: workoutTemplateId ? parseInt(workoutTemplateId) : undefined
+    });
+
+    // Перезагружаем сессию с включенными данными
+    await session.reload();
+
+    res.status(200).json(session);
+  } catch (err) {
+    console.error('Error updating session:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      sessionId: id,
+      trainerId,
+      params: { date, time, note, duration, status, workoutTemplateId }
+    });
+    res.status(500).json({ message: 'Failed to update session' });
   }
 });
 

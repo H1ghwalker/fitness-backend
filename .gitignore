@@ -4,8 +4,8 @@ dist/
 logs/
 uploads/
 docs/
-scripts/
 coverage/
 IMPROVEMENTS.md
 fitness_db_backup.sql
 *.log
+.cursorrules

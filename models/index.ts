@@ -94,6 +94,17 @@ export const initializeModels = () => {
   });
   
   // Тренер может иметь много сессий (1:M)
+  
+  // Session может иметь назначенный шаблон тренировки
+  Session.belongsTo(WorkoutTemplate, {
+    foreignKey: 'workoutTemplateId',
+    as: 'WorkoutTemplate'
+  });
+  WorkoutTemplate.hasMany(Session, {
+    foreignKey: 'workoutTemplateId',
+    as: 'Sessions'
+  });
+  
   // Ассоциации для TrainingProgram (если есть)
   // Client.belongsToMany(TrainingProgram, { through: 'ClientPrograms' });
   // TrainingProgram.belongsToMany(Client, { through: 'ClientPrograms' });

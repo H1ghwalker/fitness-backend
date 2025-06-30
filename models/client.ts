@@ -12,6 +12,9 @@ interface ClientAttributes {
   plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
   type?: "Subscription" | "One-time";
   nextSession?: Date;
+  age?: number;
+  height?: number;
+  weight?: number;
   user_id: number;
   trainer_id?: number;
   Sessions?: Session[];
@@ -28,6 +31,9 @@ export class Client extends Model<ClientAttributes> implements ClientAttributes 
   public plan?: "Premium Monthly" | "Standard Weekly" | "Single Session";
   public type?: "Subscription" | "One-time";
   public nextSession?: Date;
+  public age?: number;
+  public height?: number;
+  public weight?: number;
   public user_id!: number;
   public trainer_id!: number;
   public Sessions?: Session[];
@@ -52,6 +58,32 @@ export const initClientModel = (sequelize: Sequelize) => {
         allowNull: true,
       },
       nextSession: { type: DataTypes.DATE, allowNull: true },
+      age: { 
+        type: DataTypes.INTEGER, 
+        allowNull: true,
+        validate: {
+          min: 1,
+          max: 120
+        }
+      },
+      height: { 
+        type: DataTypes.INTEGER, 
+        allowNull: true,
+        validate: {
+          min: 50,
+          max: 250
+        },
+        comment: 'Height in centimeters'
+      },
+      weight: { 
+        type: DataTypes.DECIMAL(5, 2), 
+        allowNull: true,
+        validate: {
+          min: 20,
+          max: 300
+        },
+        comment: 'Weight in kilograms'
+      },
       user_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

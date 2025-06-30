@@ -1,10 +1,11 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import { Exercise } from '../models';
 import { AuthRequest, requireAuth } from '../middleware/auth';
 
 const router = express.Router();
 
-// Получить все упражнения тренера
+// Get all exercises (global + personal trainer)
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
   const trainerId = req.user?.id;
 
@@ -20,7 +21,12 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
 
   try {
     const exercises = await Exercise.findAll({
-      where: { createdBy: trainerId },
+      where: {
+        [Op.or]: [
+          { isGlobal: true }, // Global exercises
+          { createdBy: trainerId } // Personal trainer exercises
+        ]
+      },
       order: [['name', 'ASC']]
     });
 
@@ -31,7 +37,64 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// Создать новое упражнение
+// Get only global exercises
+router.get('/global', requireAuth, async (req: AuthRequest, res) => {
+  const trainerId = req.user?.id;
+
+  if (!trainerId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  if (req.user?.role !== 'Trainer') {
+    res.status(403).json({ message: 'Only trainers can access exercises' });
+    return;
+  }
+
+  try {
+    const exercises = await Exercise.findAll({
+      where: { isGlobal: true },
+      order: [['name', 'ASC']]
+    });
+
+    res.json({ exercises });
+  } catch (err) {
+    console.error('Error fetching global exercises:', err);
+    res.status(500).json({ message: 'Failed to fetch global exercises' });
+  }
+});
+
+// Get only personal trainer exercises
+router.get('/personal', requireAuth, async (req: AuthRequest, res) => {
+  const trainerId = req.user?.id;
+
+  if (!trainerId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  if (req.user?.role !== 'Trainer') {
+    res.status(403).json({ message: 'Only trainers can access exercises' });
+    return;
+  }
+
+  try {
+    const exercises = await Exercise.findAll({
+      where: { 
+        createdBy: trainerId,
+        isGlobal: false
+      },
+      order: [['name', 'ASC']]
+    });
+
+    res.json({ exercises });
+  } catch (err) {
+    console.error('Error fetching personal exercises:', err);
+    res.status(500).json({ message: 'Failed to fetch personal exercises' });
+  }
+});
+
+// Create new exercise (personal only)
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
   const trainerId = req.user?.id;
 
@@ -58,7 +121,8 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       description,
       category,
       muscleGroup,
-      createdBy: trainerId
+      createdBy: trainerId,
+      isGlobal: false // Trainers can only create personal exercises
     });
 
     res.status(201).json({ exercise });
@@ -68,7 +132,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// Удалить упражнение
+// Delete exercise (personal only)
 router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
   const { id } = req.params;
   const trainerId = req.user?.id;
@@ -80,11 +144,15 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
 
   try {
     const exercise = await Exercise.findOne({
-      where: { id, createdBy: trainerId }
+      where: { 
+        id, 
+        createdBy: trainerId,
+        isGlobal: false // Can only delete personal exercises
+      }
     });
 
     if (!exercise) {
-      res.status(404).json({ message: 'Exercise not found' });
+      res.status(404).json({ message: 'Exercise not found or cannot be deleted' });
       return;
     }
 
