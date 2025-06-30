@@ -63,18 +63,41 @@ console.log('Error handler added');
 // Server launch
 if (process.env.NODE_ENV !== 'test') {
   console.log('Starting database sync...');
-  sequelize.sync().then(() => {
-    console.log('Database synced successfully');
-    console.log('Starting server on port:', port);
-    app.listen(port, () => {
-      console.log(`✅ Server running on port ${port}`);
-      console.log(`✅ Environment: ${process.env.NODE_ENV}`);
-      console.log(`✅ Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+  
+  // Option to reset database in production
+  const shouldResetDB = process.env.RESET_DATABASE === 'true';
+  
+  if (shouldResetDB) {
+    console.log('🔄 Resetting database...');
+    sequelize.drop().then(() => {
+      console.log('✅ Database dropped successfully');
+      return sequelize.sync();
+    }).then(() => {
+      console.log('✅ Database synced successfully');
+      console.log('Starting server on port:', port);
+      app.listen(port, () => {
+        console.log(`✅ Server running on port ${port}`);
+        console.log(`✅ Environment: ${process.env.NODE_ENV}`);
+        console.log(`✅ Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+      });
+    }).catch((err: Error) => {
+      console.error('❌ Failed to reset/sync database:', err);
+      console.error('❌ Database URL:', process.env.DATABASE_URL);
     });
-  }).catch((err: Error) => {
-    console.error('❌ Failed to sync database:', err);
-    console.error('❌ Database URL:', process.env.DATABASE_URL);
-  });
+  } else {
+    sequelize.sync().then(() => {
+      console.log('Database synced successfully');
+      console.log('Starting server on port:', port);
+      app.listen(port, () => {
+        console.log(`✅ Server running on port ${port}`);
+        console.log(`✅ Environment: ${process.env.NODE_ENV}`);
+        console.log(`✅ Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+      });
+    }).catch((err: Error) => {
+      console.error('❌ Failed to sync database:', err);
+      console.error('❌ Database URL:', process.env.DATABASE_URL);
+    });
+  }
 } else {
   console.log('Test environment detected, skipping server start');
 }
