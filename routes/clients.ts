@@ -256,12 +256,21 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
       weight: weight ? parseFloat(weight) : undefined,
     });
 
-    await client.reload();
+    // Перезагружаем клиента с обновленными данными пользователя
+    await client.reload({
+      include: [
+        {
+          model: User,
+          as: "User",
+          attributes: ["name", "email"],
+        }
+      ],
+    });
 
     res.status(200).json({
       ...client.toJSON(),
-      name,
-      email,
+      name: client.User?.name || name,
+      email: client.User?.email || email,
       role: "Client",
     });
   } catch (err: any) {
