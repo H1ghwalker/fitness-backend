@@ -4,6 +4,7 @@ import { initializeModels } from './models';
 import { jsonParserMiddleware } from './middleware/jsonParser';
 import { corsMiddleware } from './middleware/cors';
 import { loggerMiddleware } from './middleware/logger';
+import { requestLoggerMiddleware } from './middleware/requestLogger';
 import { errorHandlerMiddleware } from './middleware/errorHandler';
 import path from 'path';
 import helmet from 'helmet';
@@ -37,6 +38,7 @@ console.log('Rate limiting middleware added');
 
 // Middleware
 app.use(loggerMiddleware);
+app.use(requestLoggerMiddleware);
 app.use(corsMiddleware);
 app.use(jsonParserMiddleware);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

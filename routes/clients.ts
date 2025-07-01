@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 import { AuthRequest, requireAuth, requireRole } from "../middleware/auth";
-import { upload } from "../middleware/upload";
+import { upload, handleUploadError } from "../middleware/upload";
 import logger from "../utils/logger";
 import { Session } from "../models/session";
 
@@ -95,7 +95,7 @@ router.post(
   requireAuth,
   requireRole("Trainer"),
   upload.single("profile"),
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res, next) => {
     const {
       name,
       email,
@@ -205,12 +205,12 @@ router.post(
         stack: err instanceof Error ? err.stack : undefined,
         params: { name, email, goal, phone, address, notes, plan, type, nextSession, age, height, weight }
       });
-      res.status(500).json({ error: "Failed to create client" });
+      next(err);
     }
   }
 );
 
-router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthRequest, res) => {
+router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthRequest, res, next) => {
   const { id } = req.params;
   const { name, email, goal, phone, address, notes, plan, nextSession, age, height, weight } = req.body;
   const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
@@ -269,7 +269,7 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
     if (err.name === "SequelizeUniqueConstraintError") {
       res.status(400).json({ error: "Email already exists" });
     } else {
-      res.status(500).json({ error: "Failed to update client" });
+      next(err);
     }
   }
 });
