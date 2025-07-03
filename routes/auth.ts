@@ -67,7 +67,8 @@ router.post("/logout", (req, res): void => {
     httpOnly: true,
     sameSite: "none",
     secure: true,
-  }).status(200).json({ message: "Logged out" });
+  })
+  .status(200).json({ message: "Logged out" });
 });
 
 // GET /api/auth/me

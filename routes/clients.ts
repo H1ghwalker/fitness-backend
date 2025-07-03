@@ -159,7 +159,7 @@ router.post(
           [hours, minutes] = timePart.split(':').map(Number);
         }
         
-        nextSessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+        nextSessionDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
       }
 
       const client = await Client.create({

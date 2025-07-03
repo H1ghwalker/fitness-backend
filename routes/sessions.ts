@@ -61,9 +61,9 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       [hours, minutes] = time.split(':').map(Number);
     }
 
-    // Создаем дату из строки и устанавливаем время
+    // Создаем дату в локальной временной зоне (не UTC)
     const [year, month, day] = date.split('T')[0].split('-').map(Number);
-    const sessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+    const sessionDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
     console.log('Creating session with params:', {
       clientId,
@@ -349,7 +349,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res) => {
       }
 
       const [year, month, day] = date.split('T')[0].split('-').map(Number);
-      sessionDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+      sessionDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
     }
 
     // Обновляем сессию

@@ -11,11 +11,7 @@
     "seed-exercises": "node scripts/seed-exercises.js",
     "setup:exercises": "node scripts/setup-exercises.js",
     "start": "node dist/server.js",
-    "build": "tsc",
-    "migrate": "npx sequelize-cli db:migrate",
-    "migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
-    "init:db": "node scripts/init-db.js"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "",
