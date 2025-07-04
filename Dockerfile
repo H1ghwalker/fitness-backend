@@ -6,10 +6,10 @@ COPY package*.json ./
 
 RUN npm install --include=dev
 
-COPY . .
-
-RUN mkdir -p logs && chmod 777 logs
+# Создаем директории для логов и uploads
+RUN mkdir -p logs uploads && chmod 777 logs uploads
 
 EXPOSE 1337
 
+# Используем nodemon для разработки
 CMD ["npm", "run", "dev"]

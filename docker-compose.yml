@@ -60,6 +60,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    working_dir: /app
     networks:
       - fitness_network
     restart: unless-stopped
