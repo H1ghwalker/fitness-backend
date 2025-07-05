@@ -4,6 +4,7 @@ import clientRoutes from './clients';
 import sessionRoutes from './sessions';
 import exerciseRoutes from './exercises';
 import workoutTemplateRoutes from './workoutTemplates';
+import progressRoutes from './progress';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/clients', clientRoutes);
 router.use('/sessions', sessionRoutes);
 router.use('/exercises', exerciseRoutes);
 router.use('/workout-templates', workoutTemplateRoutes);
+router.use('/', progressRoutes);
 
 export default router;

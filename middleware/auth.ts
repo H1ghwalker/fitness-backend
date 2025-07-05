@@ -34,3 +34,6 @@ export function requireRole(role: "Trainer" | "Client") {
     next();
   };
 }
+
+// Alias for requireAuth for backward compatibility
+export const authenticateToken = requireAuth;
