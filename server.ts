@@ -27,14 +27,14 @@ console.log('Express app created');
 app.use(helmet());
 console.log('Helmet middleware added');
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
-console.log('Rate limiting middleware added');
+// Rate limiting - отключен для разработки
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 1000, // Limit each IP to 1000 requests per windowMs
+//   message: 'Too many requests from this IP, please try again later.'
+// });
+// app.use(limiter);
+console.log('Rate limiting disabled for development');
 
 // Middleware
 app.use(loggerMiddleware);

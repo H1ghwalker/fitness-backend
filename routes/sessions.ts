@@ -377,4 +377,141 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+// Массовое создание сессий (для повторяющихся сессий)
+router.post('/bulk-create', requireAuth, async (req: AuthRequest, res) => {
+  const { 
+    clientId, 
+    dates, 
+    time, 
+    note, 
+    duration, 
+    status, 
+    workoutTemplateId 
+  } = req.body;
+  const trainerId = req.user?.id;
+
+  if (!trainerId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+
+  if (!dates || !Array.isArray(dates) || dates.length === 0) {
+    res.status(400).json({ message: 'Dates array is required and must not be empty' });
+    return;
+  }
+
+  try {
+    // Проверяем, существует ли клиент и принадлежит ли он текущему тренеру
+    const client = await Client.findOne({
+      where: {
+        id: clientId,
+        trainer_id: trainerId
+      }
+    });
+
+    if (!client) {
+      res.status(404).json({ message: 'Client not found or does not belong to you' });
+      return;
+    }
+
+    // Проверяем, существует ли шаблон тренировки и принадлежит ли он тренеру (если указан)
+    if (workoutTemplateId) {
+      const template = await WorkoutTemplate.findOne({
+        where: {
+          id: workoutTemplateId,
+          createdBy: trainerId
+        }
+      });
+
+      if (!template) {
+        res.status(404).json({ message: 'Workout template not found or does not belong to you' });
+        return;
+      }
+    }
+
+    // Парсим время
+    let hours = 9; // По умолчанию 9:00
+    let minutes = 0;
+    
+    if (time) {
+      [hours, minutes] = time.split(':').map(Number);
+    }
+
+    // Создаем массив сессий для bulk insert
+    const sessionsToCreate = dates.map((dateStr: string) => {
+      // Парсим дату
+      const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+      const sessionDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+      return {
+        clientId,
+        trainerId,
+        date: sessionDate,
+        note,
+        duration: duration ? parseInt(duration) : undefined,
+        status: status || 'scheduled',
+        workoutTemplateId: workoutTemplateId ? parseInt(workoutTemplateId) : undefined
+      };
+    });
+
+    // Проверяем на конфликты (сессии в то же время)
+    const existingSessions = await Session.findAll({
+      where: {
+        trainerId,
+        date: {
+          [Op.in]: sessionsToCreate.map(s => s.date)
+        }
+      }
+    });
+
+    if (existingSessions.length > 0) {
+      const conflictingDates = existingSessions.map(s => s.date.toISOString().split('T')[0]);
+      res.status(409).json({ 
+        message: 'Some sessions already exist for these dates', 
+        conflictingDates 
+      });
+      return;
+    }
+
+    // Создаем сессии
+    const createdSessions = await Session.bulkCreate(sessionsToCreate);
+
+    // Обновляем nextSession у клиента
+    const nextSession = await Session.findOne({
+      where: {
+        clientId,
+        date: {
+          [Op.gte]: new Date()
+        }
+      },
+      order: [['date', 'ASC']]
+    });
+
+    await client.update({
+      nextSession: nextSession ? nextSession.date : undefined
+    });
+
+    console.log(`Created ${createdSessions.length} sessions for client ${clientId}`);
+
+    res.status(201).json({
+      message: `Successfully created ${createdSessions.length} sessions`,
+      sessionsCreated: createdSessions.length,
+      sessions: createdSessions
+    });
+  } catch (err) {
+    console.error('Error creating bulk sessions:', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+      params: { clientId, dates, time, note, duration, trainerId, workoutTemplateId }
+    });
+    res.status(500).json({ message: 'Failed to create sessions' });
+  }
+});
+
+// Технический роут для удаления всех сессий
+router.delete('/all', requireAuth, async (req: AuthRequest, res) => {
+  await Session.destroy({ where: {} });
+  res.json({ message: 'All sessions deleted' });
+});
+
 export default router;
