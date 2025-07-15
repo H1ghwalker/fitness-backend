@@ -15,6 +15,8 @@ interface ClientAttributes {
   age?: number;
   height?: number;
   weight?: number;
+  targetWeight?: number;
+  weightDate?: Date;
   user_id: number;
   trainer_id?: number;
   Sessions?: Session[];
@@ -34,6 +36,8 @@ export class Client extends Model<ClientAttributes> implements ClientAttributes 
   public age?: number;
   public height?: number;
   public weight?: number;
+  public targetWeight?: number;
+  public weightDate?: Date;
   public user_id!: number;
   public trainer_id!: number;
   public Sessions?: Session[];
@@ -83,6 +87,19 @@ export const initClientModel = (sequelize: Sequelize) => {
           max: 300
         },
         comment: 'Weight in kilograms'
+      },
+      targetWeight: {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true,
+        validate: {
+          min: 20,
+          max: 300
+        },
+        comment: 'Target weight in kilograms'
+      },
+      weightDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
       },
       user_id: {
         type: DataTypes.INTEGER,

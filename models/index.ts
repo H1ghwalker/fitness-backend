@@ -5,6 +5,7 @@ import { initSessionModel, Session } from './session';
 import { initExerciseModel, Exercise } from './exercise';
 import { initWorkoutTemplateModel, WorkoutTemplate } from './workoutTemplate';
 import { initWorkoutExerciseModel, WorkoutExercise } from './workoutExercise';
+import { initProgressMeasurementModel, ProgressMeasurement } from './progressMeasurement';
 
 const sequelize = new Sequelize(
   process.env.DATABASE_URL || 'postgres://fitness_user:fitness_password@localhost:5432/fitness_db',
@@ -34,8 +35,11 @@ export const initializeModels = () => {
     
     console.log('🔧 Initializing WorkoutExercise model...');
     initWorkoutExerciseModel(sequelize);
+    
+    console.log('🔧 Initializing ProgressMeasurement model...');
+    initProgressMeasurementModel(sequelize);
 
-    if (!User || !Client || !Exercise || !WorkoutTemplate || !WorkoutExercise) {
+    if (!User || !Client || !Exercise || !WorkoutTemplate || !WorkoutExercise || !ProgressMeasurement) {
       throw new Error('One or more models failed to initialize');
     }
 
@@ -173,6 +177,19 @@ export const initializeModels = () => {
       as: 'WorkoutExercises'
     });
 
+    // Ассоциации для ProgressMeasurement
+    console.log('🔧 Setting up ProgressMeasurement associations...');
+    ProgressMeasurement.belongsTo(Client, {
+      foreignKey: 'clientId',
+      as: 'Client',
+      onDelete: 'CASCADE'
+    });
+    Client.hasMany(ProgressMeasurement, {
+      foreignKey: 'clientId',
+      as: 'ProgressMeasurements',
+      onDelete: 'CASCADE'
+    });
+
     console.log('✅ All associations set up successfully');
     console.log('✅ Model initialization completed');
   } catch (error) {
@@ -182,4 +199,4 @@ export const initializeModels = () => {
 };
 
 export default sequelize;
-export { User, Client, Session, Exercise, WorkoutTemplate, WorkoutExercise };
+export { User, Client, Session, Exercise, WorkoutTemplate, WorkoutExercise, ProgressMeasurement };

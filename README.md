@@ -1,91 +1,63 @@
-Setup for Local Development with Docker
-Prerequisites
+# Fitness Backend
 
-Docker Desktop (Windows/macOS) or Docker (Linux): Download
+Express.js backend for fitness trainer application with PostgreSQL and Sequelize.
 
-Why Two Containers?
+## Setup
 
-The project uses two containers to separate the database (fitness_db) and backend (fitness-backend):
-Database (PostgreSQL): Handles data storage.
-Backend (Node.js): Runs the application.
+1. Install dependencies:
+```bash
+npm install
+```
 
+2. Set up environment variables in `.env` file:
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=fitness_db
+DB_USER=your_username
+DB_PASSWORD=your_password
+JWT_SECRET=your_jwt_secret
+PORT=3001
+```
 
-This separation mirrors the production architecture on Render, where the database and backend are separate services. It ensures isolation, easier debugging, and scalability.
+3. Run database migrations:
+```bash
+# Apply the weightDate migration
+psql -h localhost -U your_username -d fitness_db -f migrations/add_weight_date_to_clients.sql
+```
 
+4. Start the server:
+```bash
+npm run dev
+```
 
-Clone the repository:
-git clone https://github.com/H1ghwalker/fitness-backend.git
-cd fitness-backend
+## Database Migrations
 
+### Adding weightDate field to clients table
 
-Set up environment variables:
+To track when a trainer added weight to a client's profile, run:
 
-Copy the .env.example file to .env:cp .env.example .env
+```bash
+psql -h localhost -U your_username -d fitness_db -f migrations/add_weight_date_to_clients.sql
+```
 
+This will:
+- Add `weightDate` TIMESTAMP column to the `clients` table
+- Set current timestamp for existing clients who have weight specified
+- Enable automatic tracking of weight entry dates for new/updated clients
 
-The default DATABASE_URL uses:
-User: fitness_user
-Password: fitness_password
-Database: fitness_db
-Port: 5432
+## API Endpoints
 
+- `GET /api/clients` - Get all clients for trainer
+- `POST /api/clients` - Create new client
+- `PUT /api/clients/:id` - Update client (automatically sets weightDate when weight changes)
+- `DELETE /api/clients/:id` - Delete client
 
+## Features
 
-
-Run PostgreSQL and Backend using Docker:
-
-Start the containers:docker-compose up -d --build
-
-
-Note: Dependencies are installed automatically inside the container (npm install is not required on your machine).
-This will start:
-PostgreSQL container (fitness_db, port 5432).
-Backend container (fitness-backend, port 1337).
-
-
-
-
-Access the backend:
-
-The server will be available at http://localhost:1337.
-Test the API:
-GET http://localhost:1337/api/clients: List all clients.
-POST http://localhost:1337/api/clients: Add a new client (e.g., {"name": "Test Client", "email": "test@example.com", "plan": "Premium Monthly"}).
-
-
-
-
-
-Testing on Render (Test Environment)
-
-The current Render environment (fitness-backend-hh69) is used as a test environment.
-Database: fitness_db_69fw.
-After local development, deploy changes to test:git add .
-git commit -m "Add new feature"
-git push
-
-
-Test the application at https://fitness-backend-hh69.onrender.com.
-
-Viewing Database Data in TablePlus (Recommended)
-
-Download TablePlus: https://tableplus.com
-Local Development:
-Host: localhost
-Port: 5432
-Database: fitness_db
-Username: fitness_user
-Password: fitness_password
-SSL: Disable
-
-
-Test Environment (Render):
-Host: dpg-d01rq63e5dus73bgq0v0-a.frankfurt-postgres.render.com
-Port: 5432
-Database: fitness_db_69fw
-Username: fitness_admin
-Password: (get from Render Dashboard)
-SSL: Enable (Require)
+- **Automatic weightDate tracking**: When a trainer updates a client's weight in their profile, the system automatically records the date and time of this change
+- **Progress tracking integration**: The weightDate is used in progress tracking to show the actual date when the weight was first recorded
+- **Backward compatibility**: Existing clients with weight will have weightDate set to current timestamp
 
 
 

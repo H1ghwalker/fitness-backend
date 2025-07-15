@@ -45,12 +45,24 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
       ],
     });
 
-    logger.info('Clients fetched successfully', {
-      trainerId: req.user.id,
-      clientCount: clients.length
+    // Преобразуем DECIMAL поля в числа для фронтенда
+    const clientsData = clients.map(client => {
+      const clientData = client.toJSON();
+      if (clientData.targetWeight !== null && clientData.targetWeight !== undefined) {
+        clientData.targetWeight = Number(clientData.targetWeight);
+      }
+      if (clientData.weight !== null && clientData.weight !== undefined) {
+        clientData.weight = Number(clientData.weight);
+      }
+      return clientData;
     });
 
-    res.status(200).json(clients);
+    logger.info('Clients fetched successfully', {
+      trainerId: req.user.id,
+      clientCount: clientsData.length
+    });
+
+    res.status(200).json(clientsData);
   } catch (err) {
     logger.error('Error fetching clients', {
       error: err instanceof Error ? err.message : 'Unknown error',
@@ -83,7 +95,16 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    res.status(200).json(client);
+    // Преобразуем DECIMAL поля в числа для фронтенда
+    const clientData = client.toJSON();
+    if (clientData.targetWeight !== null && clientData.targetWeight !== undefined) {
+      clientData.targetWeight = Number(clientData.targetWeight);
+    }
+    if (clientData.weight !== null && clientData.weight !== undefined) {
+      clientData.weight = Number(clientData.weight);
+    }
+
+    res.status(200).json(clientData);
   } catch (err) {
     console.error("Error fetching client by id:", err);
     res.status(500).json({ error: "Failed to fetch client" });
@@ -109,6 +130,7 @@ router.post(
       age,
       height,
       weight,
+      targetWeight,
     } = req.body;
 
     logger.info('Creating new client', {
@@ -175,6 +197,8 @@ router.post(
         age: age ? parseInt(age) : undefined,
         height: height ? parseInt(height) : undefined,
         weight: weight ? parseFloat(weight) : undefined,
+        targetWeight: targetWeight ? parseFloat(targetWeight) : undefined,
+        weightDate: weight ? new Date() : undefined, // Устанавливаем дату при создании, если вес указан
         trainer_id: req.user!.id,
       });
 
@@ -193,8 +217,17 @@ router.post(
         plan: plan
       });
 
+      // Преобразуем DECIMAL поля в числа для фронтенда
+      const clientData = client.toJSON();
+      if (clientData.targetWeight !== null && clientData.targetWeight !== undefined) {
+        clientData.targetWeight = Number(clientData.targetWeight);
+      }
+      if (clientData.weight !== null && clientData.weight !== undefined) {
+        clientData.weight = Number(clientData.weight);
+      }
+
       res.status(201).json({
-        ...client.toJSON(),
+        ...clientData,
         name,
         email,
         role: "Client",
@@ -203,7 +236,7 @@ router.post(
       logger.error('Error creating client:', {
         error: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined,
-        params: { name, email, goal, phone, address, notes, plan, type, nextSession, age, height, weight }
+        params: { name, email, goal, phone, address, notes, plan, type, nextSession, age, height, weight, targetWeight }
       });
       next(err);
     }
@@ -212,7 +245,7 @@ router.post(
 
 router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthRequest, res, next) => {
   const { id } = req.params;
-  const { name, email, goal, phone, address, notes, plan, nextSession, age, height, weight } = req.body;
+  const { name, email, goal, phone, address, notes, plan, nextSession, age, height, weight, targetWeight } = req.body;
   const profile = req.file ? `/uploads/${req.file.filename}` : undefined;
 
   try {
@@ -242,6 +275,9 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
 
     await User.update({ name, email }, { where: { id: client.user_id } });
 
+    // Проверяем, изменился ли вес
+    const weightChanged = weight !== undefined && parseFloat(weight) !== client.weight;
+    
     await client.update({
       goal,
       phone,
@@ -254,6 +290,8 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
       age: age ? parseInt(age) : undefined,
       height: height ? parseInt(height) : undefined,
       weight: weight ? parseFloat(weight) : undefined,
+      targetWeight: targetWeight ? parseFloat(targetWeight) : undefined,
+      weightDate: weightChanged ? new Date() : client.weightDate, // Устанавливаем дату только при изменении веса
     });
 
     // Перезагружаем клиента с обновленными данными пользователя
@@ -267,8 +305,17 @@ router.put("/:id", requireAuth, upload.single("profile"), async (req: AuthReques
       ],
     });
 
+    // Преобразуем DECIMAL поля в числа для фронтенда
+    const clientData = client.toJSON();
+    if (clientData.targetWeight !== null && clientData.targetWeight !== undefined) {
+      clientData.targetWeight = Number(clientData.targetWeight);
+    }
+    if (clientData.weight !== null && clientData.weight !== undefined) {
+      clientData.weight = Number(clientData.weight);
+    }
+
     res.status(200).json({
-      ...client.toJSON(),
+      ...clientData,
       name: client.User?.name || name,
       email: client.User?.email || email,
       role: "Client",
