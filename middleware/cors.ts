@@ -4,6 +4,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://fitness-frontend-blush.vercel.app',
   'https://fitness-frontend-9rggfvan4-h1ghwalkers-projects.vercel.app',
+  'https://trainerhub.fitness',
 ];
 
 const corsOptionsDelegate = function (req: any, callback: any) {
