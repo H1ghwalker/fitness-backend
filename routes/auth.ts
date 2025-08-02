@@ -22,23 +22,41 @@ router.post("/register", validateRegistration, validate, async (req: Request, re
     const user = await User.create({ name, email, passwordHash, role });
     const token = signToken({ id: user.id, role: user.role });
 
+    // Определяем iOS устройство по User-Agent
+    const userAgent = req.headers['user-agent'] || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+    
+    console.log('Registration for iOS device:', isIOS);
+    console.log('User-Agent:', userAgent);
+
     // Исправленные настройки cookie для iOS Safari
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "none" as const,
+      secure: true,
+      path: "/",
+      domain: process.env.COOKIE_DOMAIN || undefined,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+    };
+
+    // Для iOS добавляем дополнительные заголовки
+    if (isIOS) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+
     res
-      .clearCookie("token", {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-        path: "/",
-      })
-      .cookie("token", token, {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
-      })
+      .clearCookie("token", cookieOptions)
+      .cookie("token", token, cookieOptions)
       .status(201)
-      .json({ id: user.id, name: user.name, email: user.email, role: user.role });
+      .json({ 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        isIOS: isIOS // Добавляем информацию о iOS для фронтенда
+      });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ message: "Internal server error during registration" });
@@ -64,23 +82,41 @@ router.post("/login", validateLogin, validate, async (req: Request, res: Respons
 
     const token = signToken({ id: user.id, role: user.role });
 
+    // Определяем iOS устройство по User-Agent
+    const userAgent = req.headers['user-agent'] || '';
+    const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+    
+    console.log('Login for iOS device:', isIOS);
+    console.log('User-Agent:', userAgent);
+
     // Исправленные настройки cookie для iOS Safari
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "none" as const,
+      secure: true,
+      path: "/",
+      domain: process.env.COOKIE_DOMAIN || undefined,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+    };
+
+    // Для iOS добавляем дополнительные заголовки
+    if (isIOS) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+
     res
-      .clearCookie("token", {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-        path: "/",
-      })
-      .cookie("token", token, {
-        httpOnly: true,
-        sameSite: "none",
-        secure: true,
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
-      })
+      .clearCookie("token", cookieOptions)
+      .cookie("token", token, cookieOptions)
       .status(200)
-      .json({ id: user.id, name: user.name, email: user.email, role: user.role });
+      .json({ 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        isIOS: isIOS // Добавляем информацию о iOS для фронтенда
+      });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: "Internal server error during login" });
@@ -94,6 +130,7 @@ router.post("/logout", (req, res): void => {
     sameSite: "none",
     secure: true,
     path: "/",
+    domain: process.env.COOKIE_DOMAIN || undefined,
   })
   .status(200).json({ message: "Logged out" });
 });
